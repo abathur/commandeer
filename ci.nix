@@ -8,26 +8,41 @@ let
   cmdcat = stdenv.mkDerivation rec {
     pname = "cmdcat";
     version = "unreleased";
-    # https://github.com/analyman/cmdcat
     src = fetchFromGitHub {
+      # https://github.com/analyman/cmdcat
       owner  = "analyman";
       repo   = "cmdcat";
       rev    = "3bfa93521bafc62e3d201ee5d07e1fb281f33e92";
       hash = "sha256-sUF0AxiNP70TX2DVzcuwlAqQyPWac/zXxbO/C2jdMTA=";
     };
 
+    # don't trust me much from here on out; I've done a lot of fiddling/fumbling.
+    # I don't know exactly what I'm doing, and I haven't tried to clean it up yet
+    # since I haven't gotten it working.
+
     nativeBuildInputs = [ cmake pkgconfig gcc fixDarwinDylibNames ];
-    buildInputs = with pkgs; [ nlohmann_json lua5_3 ];
-    # patchPhase = ''
-    #   substituteInPlace CMakeLists.txt --replace "add_subdirectory(./third_party/json)" "find_package(nlohmann_json REQUIRED)"
+    buildInputs = with pkgs; [
+      # source has this in a submodule in third_party/json
+      nlohmann_json
+      # I had trouble with a signature mismatch using default lua
+      # don't recall for sure but I think it was 5.1?
+      lua5_3
+    ];
+    patchPhase = ''
+    substituteInPlace CMakeLists.txt --replace "add_subdirectory(./third_party/json)" "find_package(nlohmann_json REQUIRED)"
     #   substituteInPlace tests/exec-test.cc --replace "<wait.h>" "<sys/wait.h>"
     #   substituteInPlace bin/main.cc --replace "libccat.so" "libccat${stdenv.hostPlatform.extensions.sharedLibrary}"
-    #   grep libccat bin/main.cc
-    # '';
+    '';
     # cmakeFlags = [
-    #   "-DCMAKE_CXX_COMPILER=${gcc}/bin/g++"
-    #   "-DCMAKE_C_COMPILER=${gcc}/bin/gcc"
-    #   "-DLUA_LIBRARY=${lua5_3}/lib/liblua${stdenv.hostPlatform.extensions.sharedLibrary}"
+    #   # "-DCMAKE_CXX_COMPILER=${gcc}/bin/g++"
+    #   # "-DCMAKE_C_COMPILER=${gcc}/bin/gcc"
+    #   # I get link failures on Lua API methods, but I'm not sure what the
+    #   # "right" fix is (i.e., is this a problem in the project, or something I'm
+    #   # just failing to patch correctly.) In my local copy I skirted this by just
+    #   # using `find_package(Lua REQUIRED)` instead of FindLua. None of the below work:
+    #   # "-DLUA_LIBRARIES=${lua5_3}/lib"
+    #   # "-DLUA_LIBRARY=${lua5_3}/lib/liblua${stdenv.hostPlatform.extensions.sharedLibrary}"
+    #   # "-DLUA_INCLUDE_DIR=${lua5_3}/include"
     # ];
     # configureFlags = [
     #   "CPPFLAGS=-I${nlohmann_json}/include/nlohmann/"
