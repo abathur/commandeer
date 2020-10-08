@@ -58,7 +58,7 @@ let
       find .
       mkdir -p $out/bin $out/lib
       install cmdcat $out/bin
-      install lib/libccat.dylib $out/lib
+      install lib/libccat${stdenv.hostPlatform.extensions.sharedLibrary} $out/lib
     '';
     checkPhase = ''
       cp ../tests/test.sh tests/test.sh
