@@ -43,6 +43,7 @@ let
       # lua5_3 temp disabled; using commit before lua support is lit up
     ];
     patchPhase = ''
+    patchShebangs tests
     # find nixpkgs copy instead of vendored
     substituteInPlace CMakeLists.txt --replace "add_subdirectory(./third_party/json)" "find_package(nlohmann_json REQUIRED)"
     # cross platform
