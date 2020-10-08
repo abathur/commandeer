@@ -117,7 +117,7 @@ in stdenv.mkDerivation {
   checkPhase = ''
     patchShebangs .
     printf "\033[33m============================= test script ===================================\033[0m\n"
-    bat ./pstree_egrep_xargs_echo.sh
+    bat --paging never --wrap never ./pstree_egrep_xargs_echo.sh
 
     printf "\033[33m============================= red demo ===============================\033[0m\n"
     echo "running: ${red}/bin/red -o /dev/fd/1 ./pstree_egrep_xargs_echo.sh"
