@@ -1,10 +1,19 @@
 { pkgs ? import <nixpkgs> { }
+  # cmdcat isn't building on darwin at this commit, see below for more
+  , includeCmdcat ? !pkgs.stdenv.isDarwin
 }:
 
 with pkgs;
 let
-  # I've had to hack extensively on my local; I'm hoping maybe it'll run on linux
-  # in CI with minimal mods; I'll be progressively enabling patches below if not
+  # I had to hack extensively on my local to get the latest commit
+  # running on macOS. I was hoping NixOS would be easier, but it hasn't.
+  # I have had better luck with the commit before last, which needs only
+  # a few patches below...
+  #
+  # the first few macOS failures are:
+  # - tests/exec-test.cc: fatal error: 'wait.h' file not found
+  #   missing "environ" (iirc this is in "../lib/utils.h")
+  # - bin/main.cc: missing "environ", "execvpe" (latter is definitely a cross-platform issue)
   cmdcat = stdenv.mkDerivation rec {
     pname = "cmdcat";
     version = "unreleased";
@@ -12,54 +21,50 @@ let
       # https://github.com/analyman/cmdcat
       owner  = "analyman";
       repo   = "cmdcat";
-      rev    = "3bfa93521bafc62e3d201ee5d07e1fb281f33e92";
-      hash = "sha256-sUF0AxiNP70TX2DVzcuwlAqQyPWac/zXxbO/C2jdMTA=";
+      # falling back to 1 commit before latest; the LUA change is giving me
+      # too much trouble.
+      rev    = "7fcde6102258e4c7dae4b9373204efefaf5fe9ed";
+      hash = "sha256-fAhegDYJu+DG0T0LMip8T2U7cW6+Sj6Vr29Q5EUyZTs=";
+      # latest is:
+      # rev  = "3bfa93521bafc62e3d201ee5d07e1fb281f33e92";
+      # hash = "sha256-sUF0AxiNP70TX2DVzcuwlAqQyPWac/zXxbO/C2jdMTA=";
     };
 
     # don't trust me much from here on out; I've done a lot of fiddling/fumbling.
     # I don't know exactly what I'm doing, and I haven't tried to clean it up yet
     # since I haven't gotten it working.
 
-    nativeBuildInputs = [ cmake pkgconfig gcc fixDarwinDylibNames ];
+    nativeBuildInputs = [ cmake pkgconfig ];
     buildInputs = with pkgs; [
-      # source has this in a submodule in third_party/json
+      # cmdcat source has this in a submodule @ third_party/json
       nlohmann_json
       # I had trouble with a signature mismatch using default lua
       # don't recall for sure but I think it was 5.1?
-      lua5_3
+      # lua5_3 temp disabled; using commit before lua support is lit up
     ];
     patchPhase = ''
+    # find nixpkgs copy instead of vendored
     substituteInPlace CMakeLists.txt --replace "add_subdirectory(./third_party/json)" "find_package(nlohmann_json REQUIRED)"
-    #   substituteInPlace tests/exec-test.cc --replace "<wait.h>" "<sys/wait.h>"
-    #   substituteInPlace bin/main.cc --replace "libccat.so" "libccat${stdenv.hostPlatform.extensions.sharedLibrary}"
+    # cross platform
+    substituteInPlace bin/main.cc --replace "libccat.so" "libccat${stdenv.hostPlatform.extensions.sharedLibrary}"
+    # modify one entry in hardcoded search path to help it find libccat
+    # this is not at all ideal; would be better as a patch or upstreamed
+    substituteInPlace bin/main.cc --replace "/usr/local/lib" "$out/lib"
     '';
-    # cmakeFlags = [
-    #   # "-DCMAKE_CXX_COMPILER=${gcc}/bin/g++"
-    #   # "-DCMAKE_C_COMPILER=${gcc}/bin/gcc"
-    #   # I get link failures on Lua API methods, but I'm not sure what the
-    #   # "right" fix is (i.e., is this a problem in the project, or something I'm
-    #   # just failing to patch correctly.) In my local copy I skirted this by just
-    #   # using `find_package(Lua REQUIRED)` instead of FindLua. None of the below work:
-    #   # "-DLUA_LIBRARIES=${lua5_3}/lib"
-    #   # "-DLUA_LIBRARY=${lua5_3}/lib/liblua${stdenv.hostPlatform.extensions.sharedLibrary}"
-    #   # "-DLUA_INCLUDE_DIR=${lua5_3}/include"
-    # ];
-    # configureFlags = [
-    #   "CPPFLAGS=-I${nlohmann_json}/include/nlohmann/"
-    #   "-Dnlohmann_json_DIR=${nlohmann_json}/lib/cmake/nlohmann_json"
-    # ];
-    # installPhase = ''
-    #   find .
-    #   mkdir -p $out/bin $out/lib
-    #   install cmdcat $out/bin
-    #   install lib/libccat.dylib $out/lib
-    # '';
-    # checkPhase = ''
-    #   cp $src/tests/test.sh tests/test.sh
-    #   tests/test.sh
-    # '';
-    # doCheck = true;
-    # extraOutputsToInstall = [ "lib" ];
+
+    installPhase = ''
+      # just dumping find for debug; kill later
+      find .
+      mkdir -p $out/bin $out/lib
+      install cmdcat $out/bin
+      install lib/libccat.dylib $out/lib
+    '';
+    checkPhase = ''
+      cp ../tests/test.sh tests/test.sh
+      tests/test.sh
+    '';
+    doCheck = true;
+    extraOutputsToInstall = [ "lib" ];
   };
   red = stdenv.mkDerivation rec {
     pname = "red";
@@ -72,7 +77,7 @@ let
       hash = "sha256-BowniihNi4fKTwNP8akvTZyhLQNvvXDn7Lm1SSxzVNg=";
     };
 
-    nativeBuildInputs = [ cmake pkgconfig clang fixDarwinDylibNames ];
+    nativeBuildInputs = [ cmake pkgconfig clang ];
     buildInputs = with pkgs; [ ];
     # says >=2.7; I started with 2.7 since that's already in resholve's closure...
     propagatedBuildInputs = [ python27 ];
@@ -104,7 +109,7 @@ in stdenv.mkDerivation {
     mkdir $out
   '';
   doCheck = true;
-  buildInputs = [ clade red ] ++ stdenv.lib.optionals stdenv.isLinux [ cmdcat ];
+  buildInputs = [ clade red ] ++ stdenv.lib.optionals includeCmdcat [ cmdcat ];
   # TODO: add pstree to the list of programs with unspecified deps; it invokes a bare
   # ps and *WILL* fail if ps isn't on path.
   checkInputs = [ ps pstree findutils gnugrep bat ]; # bat just for formatting...
@@ -131,7 +136,7 @@ in stdenv.mkDerivation {
     ${clade}/bin/clade -i -f ./pstree_egrep_xargs_echo.sh
     bat --paging never --wrap never clade/cmds.txt
     echo wat?
-  '' + stdenv.lib.optionalString stdenv.isLinux ''
+  '' + stdenv.lib.optionalString includeCmdcat ''
     printf "\033[33m============================= cmdcat demo ===================================\033[0m\n"
     echo "running: ${cmdcat}/bin/cmdcat ./pstree_egrep_xargs_echo.sh"
     ${cmdcat}/bin/cmdcat ./pstree_egrep_xargs_echo.sh
