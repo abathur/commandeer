@@ -14,4 +14,5 @@ jobs:
     - uses: cachix/install-nix-action@v12
       with:
         nix_path: nixpkgs=channel:nixos-unstable
-    - run: nix-build ci.nix
+    # - run: nix-build dynamic_exec.nix # temp disable
+    - run: nix-build static_exec.nix

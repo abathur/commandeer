@@ -103,8 +103,8 @@ let
     propagatedBuildInputs = with python3.pkgs; [ ujson chardet cchardet graphviz ply setuptools pip ];
   };
 
-in stdenv.mkDerivation {
-  name = "commandeer-ci";
+in stdenv.mkDerivation rec {
+  name = "commandeer-dynamic";
   src = ./.;
   installPhase = ''
     mkdir $out
