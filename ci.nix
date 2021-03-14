@@ -128,18 +128,19 @@ in stdenv.mkDerivation {
     printf "\033[33m============================= red demo ===============================\033[0m\n"
     echo "running: ${red}/bin/red -o /dev/fd/1 ./pstree_egrep_xargs_echo.sh"
     echo Note: red is built on Bear and wants to write to compile_commands.json by default.
-    ${red}/bin/red -o /dev/fd/1 ./pstree_egrep_xargs_echo.sh
+    time ${red}/bin/red -o /dev/fd/1 ./pstree_egrep_xargs_echo.sh
+    # time main.sh ./pstree_egrep_xargs_echo.sh
     echo ""
 
     printf "\033[33m============================= clade demo ===============================\033[0m\n"
     echo "running: ${clade}/bin/clade -i -f ./pstree_egrep_xargs_echo.sh"
     echo Note: clade writes to clade/cmds.txt. It recommands consuming the format via it\'s python processor API since it might change...
-    ${clade}/bin/clade -i -f ./pstree_egrep_xargs_echo.sh
+    time ${clade}/bin/clade -i -f ./pstree_egrep_xargs_echo.sh
     bat --paging never --wrap never clade/cmds.txt
     echo wat?
   '' + stdenv.lib.optionalString includeCmdcat ''
     printf "\033[33m============================= cmdcat demo ===================================\033[0m\n"
     echo "running: ${cmdcat}/bin/cmdcat ./pstree_egrep_xargs_echo.sh"
-    ${cmdcat}/bin/cmdcat ./pstree_egrep_xargs_echo.sh
+    time ${cmdcat}/bin/cmdcat ./pstree_egrep_xargs_echo.sh
   '';
 }
