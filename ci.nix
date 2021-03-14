@@ -92,10 +92,10 @@ let
   };
   clade = python3.pkgs.buildPythonPackage rec {
     pname = "clade";
-    version = "3.2.12";
+    version = "3.3.2";
     src = python3.pkgs.fetchPypi {
       inherit pname version;
-      hash = "sha256-XK0Ohr5C0gSF1VJCKs1qhw4IUDFgmiPJyVKg+mhLmRo=";
+      hash = "sha256-SwhyB2BWMM3EZ/nz56IEIGIXsJjuRiiUoUF5+WxA46Q=";
     };
     dontUseCmakeConfigure = true;
     doCheck = false;
