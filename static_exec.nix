@@ -4,20 +4,23 @@
 with pkgs;
 let
   ief = rustPlatform.buildRustPackage rec {
-  pname = "ief";
-  version = "9529fde287602db14864a107bfa0bf308caded6a";
+    pname = "ief";
+    version = "9529fde287602db14864a107bfa0bf308caded6a";
 
-  src = fetchFromGitHub {
-    owner = "abathur";
-    repo = pname;
-    rev = version;
-    hash = "sha256-6l7r+7uWzt/2JEdMJThHCjjRbFPn1WY4rYHtZ4wgVH4=";
+    src = fetchFromGitHub {
+      owner = "abathur";
+      repo = pname;
+      rev = version;
+      hash = "sha256-6l7r+7uWzt/2JEdMJThHCjjRbFPn1WY4rYHtZ4wgVH4=";
+    };
+
+    cargoHash = "sha256-2yAyFCI1WuQ8e5xIyLKJg5kNh9VdF6FH4RlWYUw8dVs=";
+
+    buildInputs = [ libiconv ];
   };
-
-  cargoHash = "sha256-2yAyFCI1WuQ8e5xIyLKJg5kNh9VdF6FH4RlWYUw8dVs=";
-
-  buildInputs = [ libiconv ];
-};
+  ouryara = yara.overrideAttrs(old: {
+    configureFlags = old.configureFlags ++ [ (lib.enableFeature true "macho") ];
+  });
 
 in stdenv.mkDerivation rec {
   /*
@@ -37,7 +40,7 @@ in stdenv.mkDerivation rec {
     mkdir $out
   '';
   doCheck = true;
-  buildInputs = [ ief yara gnugrep binutils-unwrapped file ]; # +nm from bintools
+  buildInputs = [ ief ouryara gnugrep binutils-unwrapped file ]; # +nm from bintools
   CHECKPATH = "${lib.makeBinPath (buildInputs ++ [ antlr
 asmfmt
 bandwhich
