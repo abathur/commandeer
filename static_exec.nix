@@ -102,7 +102,7 @@ gzip
 htop
 hugo
 icestorm
-ipscan
+# ipscan # marked broken
 jekyll
 jmespath
 jq
