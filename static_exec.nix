@@ -75,7 +75,7 @@ cowsay
 curl
 dash
 deno
-diffoscope
+# diffoscope # e2fsprogs marked broken
 diffutils
 doxygen
 ed
