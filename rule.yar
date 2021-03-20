@@ -153,7 +153,7 @@ rule macho_execve
             and $mac in (macho.segments[i].fileoff..(macho.segments[i].fileoff + macho.segments[i].fsize)))
 }
 
-rule execve
+rule Texecve
 {
     condition:
         go_exec or elf_execve or macho_execve

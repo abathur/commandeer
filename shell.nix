@@ -50,5 +50,5 @@ in stdenv.mkDerivation rec {
     mkdir $out
   '';
   doCheck = true;
-  buildInputs = [ ief ouryara gnugrep binutils-unwrapped file bingrep gotools asmfmt fzf go gofumpt jmespath shfmt yaml2json ]; # +nm from bintools
+  buildInputs = [ ief ouryara gnugrep binutils-unwrapped file bingrep gotools asmfmt fzf go gofumpt jmespath shfmt yaml2json zsh ]; # +nm from bintools
 }
