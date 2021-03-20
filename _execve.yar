@@ -39,6 +39,29 @@ rule symlink
         magic.type() contains "symbolic link to"
 }
 
+rule go_binary
+{
+    // these are also present in both versions (but w/o underscore)
+    // __gosymtab
+    // __gopclntab
+    strings:
+        $gosymtab = "gosymtab"
+        $gopclntab = "gopclntab"
+        //               g  o  .  b  u  i  l  d  i  d
+        $buildid = { 00 67 6f 2e 62 75 69 6c 64 69 64 00 }
+    condition:
+        binary and 1 of them //or magic.type() contains "Go BuildID"
+}
+
+rule go_exec
+{
+    strings:
+        $ = "exec_unix.go"
+        $ = "os/exec"
+    condition:
+        go_binary and 1 of them
+}
+
 rule execve
 {
     strings:

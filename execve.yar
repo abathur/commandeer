@@ -58,5 +58,5 @@ rule execve
     // TODO: AFAIK all I need is the below, but it's worth testing whether a naive
     // string match on execve as a precondition helps this miss faster?
     condition:
-        binary and for any i in (0..elf.symtab_entries): (elf.symtab[i].name matches /^execve/)
+        binary and for any i in (0..elf.dynsym_entries): (elf.dynsym[i].name matches /^execve/)
 }

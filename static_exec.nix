@@ -18,8 +18,18 @@ let
 
     buildInputs = [ libiconv ];
   };
-  ouryara = yara.overrideAttrs(old: {
+  # override for macho and elf module improvements
+  ouryara = yara.overrideAttrs(old: rec {
+    version = "4.1.0-rc1";
+
+    src = fetchFromGitHub {
+      owner = "VirusTotal";
+      repo = "yara";
+      rev = "v${version}";
+      hash = "sha256-7STiGsDwD/p2+Bxnt5rFeJ+/mpJAcVdPh15+cTM2uG4=";
+    };
     configureFlags = old.configureFlags ++ [ (lib.enableFeature true "macho") ];
+    patches = [];
   });
 
 in stdenv.mkDerivation rec {
@@ -41,6 +51,8 @@ in stdenv.mkDerivation rec {
   '';
   doCheck = true;
   buildInputs = [ ief ouryara gnugrep binutils-unwrapped file ]; # +nm from bintools
+  # ocaml: satysfi
+  # jdk: fop diffoscope ipscan
   CHECKPATH = "${lib.makeBinPath (buildInputs ++ [ antlr
 asmfmt
 bandwhich
@@ -63,6 +75,7 @@ cowsay
 curl
 dash
 deno
+diffoscope
 diffutils
 doxygen
 ed
@@ -71,6 +84,7 @@ exa
 ffmpeg
 findutils
 fish
+fop
 fzf
 gawk
 gcc
@@ -88,6 +102,7 @@ gzip
 htop
 hugo
 icestorm
+ipscan
 jekyll
 jmespath
 jq
@@ -121,6 +136,7 @@ rsync
 rustc
 rustfmt
 sass
+satysfi
 shellcheck
 shfmt
 smenu
@@ -166,7 +182,7 @@ zsh ] ++ stdenv.lib.optionals (!stdenv.isDarwin) [ sudo ])}";
       else
         printf "nm: no; "
       fi
-      if yara "$func.yar" "$binary" 2>/dev/null | grep -F "$binary" >/dev/null; then
+      if yara rule.yar "$binary" 2>/dev/null | grep -F "Texecve $binary" >/dev/null; then
         printf "yara: yes; "
       else
         printf "yara: no; "
