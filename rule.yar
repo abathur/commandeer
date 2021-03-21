@@ -4,14 +4,14 @@ import "macho"
 
 private rule executable
 {
-	condition:
-		magic.type() contains "executable"
+    condition:
+        magic.type() contains "executable"
 }
 
 private rule shared_object
 {
-	condition:
-		 magic.type() contains "shared object"
+    condition:
+         magic.type() contains "shared object"
 }
 
 /*
@@ -20,41 +20,41 @@ Note: an unreadable setuid executable (like sudo) won't have the
 */
 private rule macho_binary
 {
-	condition:
-		executable and magic.type() contains "Mach-O "
+    condition:
+        executable and magic.type() contains "Mach-O "
 }
 
 private rule elf_binary
 {
-	condition:
-		(executable or shared_object) and magic.type() contains "ELF "
+    condition:
+        (executable or shared_object) and magic.type() contains "ELF "
 }
 
 private rule elf_binary_static
 {
-	condition:
-		elf_binary and magic.type() contains "statically linked"
+    condition:
+        elf_binary and magic.type() contains "statically linked"
 }
 
 // "GLIBC" might be able to separate further if needed
 private rule elf_binary_dynamic
 {
-	condition:
-		elf_binary and magic.type() contains "dynamically linked"
+    condition:
+        elf_binary and magic.type() contains "dynamically linked"
 }
 
 rule binary
 {
-	condition:
-		elf_binary or macho_binary
+    condition:
+        elf_binary or macho_binary
 }
 
 rule go_binary
 {
-	// TODO:
-	// - convert to hex
-	// - add conditional underscore
-	// - match nul bytes
+    // TODO:
+    // - convert to hex
+    // - add conditional underscore
+    // - match nul bytes
     // these are also present in both versions (but w/o underscore)
     // __gosymtab
     // __gopclntab
@@ -69,42 +69,42 @@ rule go_binary
 
 rule elf_binary_dynamic_glibc
 {
-	strings:
-		$ = "GLIBC"
-	condition:
-		elf_binary_dynamic and any of them
+    strings:
+        $ = "GLIBC"
+    condition:
+        elf_binary_dynamic and any of them
 }
 
 rule elf_binary_dynamic_unexpected_noglibc
 {
-	condition:
-		elf_binary_dynamic and not elf_binary_dynamic_glibc
+    condition:
+        elf_binary_dynamic and not elf_binary_dynamic_glibc
 }
 
 private rule script
 {
-	condition:
-		executable and magic.type() contains "script text"
+    condition:
+        executable and magic.type() contains "script text"
 }
 
 private rule shell_script
 {
-	condition:
-		script and magic.type() matches /(POSIX shell|\/bin\/\w*sh) script/
-		//script and magic.type() matches /(POSIX shell|wat) script/
+    condition:
+        script and magic.type() matches /(POSIX shell|\/bin\/\w*sh) script/
+        //script and magic.type() matches /(POSIX shell|wat) script/
 }
 
 private rule python_script
 {
-	condition:
-		script and magic.type() matches /(Python|\/bin\/python\S*) script/
+    condition:
+        script and magic.type() matches /(Python|\/bin\/python\S*) script/
 }
 
 
 rule symlink
 {
-	condition:
-		magic.type() contains "symbolic link to"
+    condition:
+        magic.type() contains "symbolic link to"
 }
 
 rule go_exec
@@ -128,7 +128,9 @@ rule elf_execve
     // TODO: AFAIK all I need is the below, but it's worth testing whether a naive
     // string match on execve as a precondition helps this miss faster?
     condition:
-        binary and for any i in (0..elf.dynsym_entries): (elf.dynsym[i].name matches /^execve/)
+        // can be a more compact RE, but let's focus
+        // on being explicit/clear for now
+        binary and for any sym in elf.dynsym : (sym.name matches /^(execl|execlp|execle|execlp|execv|execve|execveat|execvp|execvpe|fexecve|popen|posix_spawn|posix_spawnp|system)$/)
 }
 
 rule macho_execve
@@ -137,7 +139,6 @@ rule macho_execve
     // idk which form is more desirable; first is obviously
     // more self-documenting
     //$mac = "@_execve" fullword
-    // @ _  e x  e c  v e
     //405f 6578 6563 7665 00
     //                  p?
     //405f 6578 6563 7670 // there may be a normative 00 here as well?
@@ -145,12 +146,35 @@ rule macho_execve
     // $mac = { 40 5F 65 78 65 63 76 65 00 }
     // (781800..781900), (893300..893400), (899600..899700),
     //$mac = "execve"
-    $mac = { (00|40) 5F 65 78 65 63 76 65 00 }
+    //            @   _  e  x  e  c  v  e
+    $ = { (00|40) 5F 65 78 65 63 76 65 00 }
+    //            @   _  e  x  e  c  l
+    $ = { (00|40) 5F 65 78 65 63 6c 00 }
+    //            @   _  e  x  e  c  l  p
+    $ = { (00|40) 5F 65 78 65 63 6c 70 00 }
+    //            @   _  e  x  e  c  l  e
+    $ = { (00|40) 5F 65 78 65 63 6c 65 00 }
+    //            @   _  e  x  e  c  t
+    $ = { (00|40) 5F 65 78 65 63 74 00 }
+    //            @   _  e  x  e  c  v
+    $ = { (00|40) 5F 65 78 65 63 76 00 }
+    //            @   _  e  x  e  c  v  p
+    $ = { (00|40) 5F 65 78 65 63 76 70 00 }
+    //            @   _  e  x  e  c  v  P
+    $ = { (00|40) 5F 65 78 65 63 76 50 00 }
+    //            @   _  p  o  p  e  n
+    $ = { (00|40) 5F 70 6f 70 65 6e 00 }
+    //            @   _  p  o  s  i  x  _  s  p  a  w  n
+    $ = { (00|40) 5F 70 6f 73 69 78 5f 73 70 61 77 6e 00 }
+    //            @   _  p  o  s  i  x  _  s  p  a  w  n  p
+    $ = { (00|40) 5F 70 6f 73 69 78 5f 73 70 61 77 6e 70 00 }
+    //            @   _  s  y  s  t  e  m
+    $ = { (00|40) 5F 73 79 73 74 65 6d 00 }
+
+
     //$mac = { ?? ?? ?? 65 78 65 63 76 65 ?? ?? ??}
     condition:
-        binary and for any i in (0..macho.number_of_segments):
-            (macho.segments[i].segname == "__LINKEDIT"
-            and $mac in (macho.segments[i].fileoff..(macho.segments[i].fileoff + macho.segments[i].fsize)))
+        binary and for any segment in macho.segments: (segment.segname == "__LINKEDIT" and for any of them : ($ in (segment.fileoff..(segment.fileoff + segment.fsize))))
 }
 
 rule Texecve
