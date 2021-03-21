@@ -127,7 +127,7 @@ patchutils
 pcre
 perl
 php
-ponyc
+# ponyc # I suspect this of slowing down macOS builds
 ps
 pstree
 python
