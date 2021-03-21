@@ -52,7 +52,7 @@ in stdenv.mkDerivation rec {
   doCheck = true;
   buildInputs = [ ief ouryara gnugrep binutils-unwrapped file ]; # +nm from bintools
   # ocaml: satysfi
-  # jdk: fop diffoscope ipscan
+  # jdk: fop
   CHECKPATH = "${lib.makeBinPath (buildInputs ++ [ antlr
 asmfmt
 bandwhich
@@ -75,7 +75,6 @@ cowsay
 curl
 dash
 deno
-# diffoscope # e2fsprogs marked broken
 diffutils
 doxygen
 ed
@@ -102,7 +101,6 @@ gzip
 htop
 hugo
 icestorm
-# ipscan # marked broken
 jekyll
 jmespath
 jq
@@ -127,7 +125,6 @@ patchutils
 pcre
 perl
 php
-# ponyc # I suspect this of slowing down macOS builds
 ps
 pstree
 python
@@ -164,20 +161,28 @@ zsh ] ++ stdenv.lib.optionals (!stdenv.isDarwin) [ sudo ])}";
     commands(){
       ${bashInteractive}/bin/bash -c "shopt -s progcomp; ${coreutils}/bin/comm -23 <(compgen -A command | ${coreutils}/bin/sort) <(compgen -A builtin -A function -A keyword | ${coreutils}/bin/sort -u)"
     }
-    check_binary_for_function(){
+    check_ief(){
+      for func in execl execle execlp exect execv execve execveat execvp execvP execvpe fexecve posix_spawn posix_spawnp system; do
+        if [[ "$(ief $1 -i $func)" == *"$1"$'\n'"$1" ]] || [[ "$(ief $1 -i _$func)" == *"$1"$'\n'"$1" ]]; then
+          return 0
+        fi
+      done
+      return 1
+    }
+    check_binary_for_functions(){
       local binary="$1" func="$2"
       printf "%s contains %s: " "$binary" "$func"
-      if grep -F "''${func/_/@_}" "$binary" >/dev/null; then
+      if grep -F -e execl -e execle -e execlp -e exect -e execv -e execve -e execveat -e execvp -e execvP -e execvpe -e fexecve -e posix_spawn -e posix_spawnp -e system "$binary" >/dev/null; then
         printf "grep: yes; "
       else
         printf "grep: no; "
       fi
-      if [[ "$(ief $binary -i $func)" == *"$binary"$'\n'"$binary" ]]; then
+      if check_ief $binary; then
         printf "ief: yes; "
       else
         printf "ief: no; "
       fi
-      if nm --dynamic --undefined "$binary" 2>/dev/null | grep -F "U $func" >/dev/null; then
+      if nm --dynamic --undefined "$binary" 2>/dev/null | grep -F -e "U execl" -e "U execle" -e "U execlp" -e "U exect" -e "U execv" -e "U execve" -e "U execveat" -e "U execvp" -e "U execvP" -e "U execvpe" -e "U fexecve" -e "U posix_spawn" -e "U posix_spawnp" -e "U system" -e "U _execl" -e "U _execle" -e "U _execlp" -e "U _exect" -e "U _execv" -e "U _execve" -e "U _execveat" -e "U _execvp" -e "U _execvP" -e "U _execvpe" -e "U _fexecve" -e "U _posix_spawn" -e "U _posix_spawnp" -e "U _system" >/dev/null; then
         printf "nm: yes; "
       else
         printf "nm: no; "
@@ -194,37 +199,23 @@ zsh ] ++ stdenv.lib.optionals (!stdenv.isDarwin) [ sudo ])}";
     for cmd in $(commands); do
       for binary in $(type -ap $cmd | sort -u); do
         file --dereference "$binary"
-        check_binary_for_function "$binary" "_execve"
-        check_binary_for_function "$binary" "execve"
+        check_binary_for_functions "$binary" "exec"
       done
     done >> checklog
     cat checklog
     set -x
-    grep -c "contains execve: .*grep: yes.*ief: yes" checklog || true
-    grep -c "contains execve: .*grep: yes.*ief: no" checklog || true
-    grep -c "contains execve: .*grep: no.*ief: yes" checklog || true
-    grep -c "contains execve: .*grep: no.*ief: no" checklog || true
-    grep -c "contains execve: .*ief: yes; nm: yes" checklog || true
-    grep -c "contains execve: .*ief: yes; nm: no" checklog || true
-    grep -c "contains execve: .*ief: no; nm: yes" checklog || true
-    grep -c "contains execve: .*ief: no; nm: no" checklog || true
-    grep -c "contains execve: .*ief: yes;.*yara: yes" checklog || true
-    grep -c "contains execve: .*ief: yes;.*yara: no" checklog || true
-    grep -c "contains execve: .*ief: no;.*yara: yes" checklog || true
-    grep -c "contains execve: .*ief: no;.*yara: no" checklog || true
-
-    grep -c "contains _execve: .*grep: yes.*ief: yes" checklog || true
-    grep -c "contains _execve: .*grep: yes.*ief: no" checklog || true
-    grep -c "contains _execve: .*grep: no.*ief: yes" checklog || true
-    grep -c "contains _execve: .*grep: no.*ief: no" checklog || true
-    grep -c "contains _execve: .*ief: yes; nm: yes" checklog || true
-    grep -c "contains _execve: .*ief: yes; nm: no" checklog || true
-    grep -c "contains _execve: .*ief: no; nm: yes" checklog || true
-    grep -c "contains _execve: .*ief: no; nm: no" checklog || true
-    grep -c "contains _execve: .*ief: yes;.*yara: yes" checklog || true
-    grep -c "contains _execve: .*ief: yes;.*yara: no" checklog || true
-    grep -c "contains _execve: .*ief: no;.*yara: yes" checklog || true
-    grep -c "contains _execve: .*ief: no;.*yara: no" checklog || true
+    grep -c "contains exec: .*grep: yes.*ief: yes" checklog || true
+    grep -c "contains exec: .*grep: yes.*ief: no" checklog || true
+    grep -c "contains exec: .*grep: no.*ief: yes" checklog || true
+    grep -c "contains exec: .*grep: no.*ief: no" checklog || true
+    grep -c "contains exec: .*ief: yes; nm: yes" checklog || true
+    grep -c "contains exec: .*ief: yes; nm: no" checklog || true
+    grep -c "contains exec: .*ief: no; nm: yes" checklog || true
+    grep -c "contains exec: .*ief: no; nm: no" checklog || true
+    grep -c "contains exec: .*ief: yes;.*yara: yes" checklog || true
+    grep -c "contains exec: .*ief: yes;.*yara: no" checklog || true
+    grep -c "contains exec: .*ief: no;.*yara: yes" checklog || true
+    grep -c "contains exec: .*ief: no;.*yara: no" checklog || true
     set +x
   '';
 }
