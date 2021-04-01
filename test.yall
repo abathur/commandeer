@@ -38,7 +38,9 @@ yallback:rule:execve:all(){
 } > "$execer" # 1>&$execer
 
 yallback:done(){
-  echo ok, you have control back now
+  echo START POTENTIAL EXEC-ERS
   cat $execer
+  echo END POTENTIAL EXEC-ERS
+  echo START LIKELY WRAPPERS REFERENCING POTENTIAL EXEC-ERS
   comm -12 "$wrappers" "$execer"
 }

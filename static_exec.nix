@@ -139,7 +139,6 @@ rsync
 rustc
 rustfmt
 sass
-satysfi
 shellcheck
 shfmt
 smenu
