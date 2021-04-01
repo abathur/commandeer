@@ -31,6 +31,12 @@ let
     configureFlags = old.configureFlags ++ [ (lib.enableFeature true "macho") ];
     patches = [];
   });
+  yallback = callPackage (fetchFromGitHub {
+    owner = "abathur";
+    repo = "yallback";
+    rev = "ba4057eb8347e8221f9d6c7130fbb0fba1efa61d";
+    hash = "sha256-sVb5L/oD3AnitwrAmVgrqXwzhLAiY+8CuT1/2oJMg4w=";
+  }) {};
 
 in stdenv.mkDerivation rec {
   /*
@@ -50,7 +56,7 @@ in stdenv.mkDerivation rec {
     mkdir $out
   '';
   doCheck = true;
-  buildInputs = [ ief ouryara gnugrep binutils-unwrapped file ]; # +nm from bintools
+  buildInputs = [ yallback ief ouryara gnugrep binutils-unwrapped file ]; # +nm from bintools
   # ocaml: satysfi
   # jdk: fop
   CHECKPATH = "${lib.makeBinPath (buildInputs ++ [ antlr
@@ -187,7 +193,7 @@ zsh ] ++ stdenv.lib.optionals (!stdenv.isDarwin) [ sudo ])}";
       else
         printf "nm: no; "
       fi
-      if yara rule.yar "$binary" 2>/dev/null | grep -F "Texecve $binary" >/dev/null; then
+      if yara rule.yar "$binary" 2>/dev/null | grep -F "execve $binary" >/dev/null; then
         printf "yara: yes; "
       else
         printf "yara: no; "
@@ -195,6 +201,7 @@ zsh ] ++ stdenv.lib.optionals (!stdenv.isDarwin) [ sudo ])}";
       printf "\n"
     }
     yara rule.yar --scan-list <(echo -e ''${CHECKPATH//:/\\n})
+    yara rule.yar --scan-list <(echo -e ''${CHECKPATH//:/\\n}) | yallback test.yall
     PATH="$CHECKPATH"
     for cmd in $(commands); do
       for binary in $(type -ap $cmd | sort -u); do

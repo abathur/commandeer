@@ -1,0 +1,44 @@
+
+wrappers="$(mktemp)" execer="$(mktemp)"
+echo $wrappers $execer # debug
+
+exec_target(){
+  while [ $# -gt 0 ]; do
+    # echo word: "${1@Q}" >&2
+    case "${1@Q}" in
+      "'-a'") shift;;
+      "'-c'") ;;
+      "'-l'") ;;
+      *'$@'*|*'${@'*) ;; #echo allargs: $1 >&2 ;;
+      *'$0'*|*'${0'*) ;; #echo zeroargs: $1 >&2 ;;
+      *)
+        # echo default: ${1//[\'\"]/} >&2
+        if [[ -x "${1//[\'\"]/}" ]]; then
+          # echo file: ${1//[\'\"]/} >&2
+          echo ${1//[\'\"]/}
+        fi
+        ;;
+    esac
+    shift
+  done
+}
+
+
+yallback:rule:shell_wrapper:all(){
+  echo shehe $@ >&2
+  exec_target $(grep -e "^exec" $(cat)) | sort
+} > "$wrappers" # 1>&$wrappers
+
+yallback:rule:execve:all(){
+  echo thehe $@ >&2
+  # cat
+  while read -r line; do
+    echo $line
+  done | sort
+} > "$execer" # 1>&$execer
+
+yallback:done(){
+  echo ok, you have control back now
+  # cat $wrappers $execer
+  comm -12 "$wrappers" "$execer"
+}

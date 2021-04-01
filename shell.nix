@@ -31,6 +31,12 @@ let
     configureFlags = old.configureFlags ++ [ (lib.enableFeature true "macho") ];
     patches = [];
   });
+  yallback = callPackage (fetchFromGitHub {
+    owner = "abathur";
+    repo = "yallback";
+    rev = "ba4057eb8347e8221f9d6c7130fbb0fba1efa61d";
+    hash = "sha256-sVb5L/oD3AnitwrAmVgrqXwzhLAiY+8CuT1/2oJMg4w=";
+  }) {};
 
 in stdenv.mkDerivation rec {
   /*
@@ -50,5 +56,5 @@ in stdenv.mkDerivation rec {
     mkdir $out
   '';
   doCheck = true;
-  buildInputs = [ ief ouryara gnugrep binutils-unwrapped file bingrep gotools asmfmt fzf go gofumpt jmespath shfmt yaml2json zsh ]; # +nm from bintools
+  buildInputs = [ ief ouryara yallback gnugrep binutils-unwrapped file bingrep gotools asmfmt fzf go gofumpt jmespath shfmt yaml2json zsh ]; # +nm from bintools
 }
