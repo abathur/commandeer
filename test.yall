@@ -39,6 +39,6 @@ yallback:rule:execve:all(){
 
 yallback:done(){
   echo ok, you have control back now
-  # cat $wrappers $execer
+  cat $execer
   comm -12 "$wrappers" "$execer"
 }

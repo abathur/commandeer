@@ -200,8 +200,8 @@ zsh ] ++ stdenv.lib.optionals (!stdenv.isDarwin) [ sudo ])}";
       fi
       printf "\n"
     }
-    yara rule.yar --scan-list <(echo -e ''${CHECKPATH//:/\\n})
-    yara rule.yar --scan-list <(echo -e ''${CHECKPATH//:/\\n}) | yallback test.yall
+    time yara rule.yar --scan-list <(echo -e ''${CHECKPATH//:/\\n})
+    time yara rule.yar --scan-list <(echo -e ''${CHECKPATH//:/\\n}) | yallback test.yall
     PATH="$CHECKPATH"
     for cmd in $(commands); do
       for binary in $(type -ap $cmd | sort -u); do
